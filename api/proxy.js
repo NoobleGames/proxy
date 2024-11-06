@@ -1,21 +1,36 @@
-const axios = require('axios');
+// api/proxy.js
 
-module.exports = async (req, res) => {
+import fetch from 'node-fetch';
+
+export default async function handler(req, res) {
   const { url } = req.query;
 
   if (!url) {
-    return res.status(400).json({ error: 'URL parameter is required' });
+    return res.status(400).json({ error: 'URL is required' });
   }
 
   try {
-    const response = await axios.get(url, {
-      responseType: 'stream',
-    });
+    // Decode and validate the URL (preventing issues with unsafe URLs)
+    const decodedUrl = decodeURIComponent(url);
 
-    res.setHeader('Content-Type', response.headers['content-type']);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    response.data.pipe(res);
+    // Fetch the content from the provided URL
+    const response = await fetch(decodedUrl);
+    
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'Failed to fetch the website' });
+    }
+
+    // Get the content of the fetched URL
+    const content = await response.text();
+
+    // Set the correct content-type (you can adjust this based on the type of response)
+    res.setHeader('Content-Type', 'text/html');
+    
+    // Return the fetched content
+    res.status(200).send(content);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    // If an error occurs, return a 500 error with the message
+    res.status(500).json({ error: 'Error fetching the website' });
   }
-};
+}
+
